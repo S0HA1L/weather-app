@@ -1,0 +1,115 @@
+https://youtu.be/v7xjdXWZafY - part 1 of weather app as reference
+
+1. To start the project in django
+(django-admin startproject 'yourprojectname').
+after this go into the directory of your project
+then to start the app on main file(i.e. manage.py) write
+(python manage.py startapp 'yourappname').
+after this you will have three things in the folder manage.py 'yourprojectname'(folder) 'yourappname'(folder)
+
+2. to add the app in your projectnamefolder go to the settings.py then in the INSTALLED_APPS add yourappname
+
+3. create the superuser (python manage.py migrate)
+this will also add the database sqlite 
+then type (python manage.py createsuperuser) then type username email password and here you go, successfully created superuser.
+To run the manage.py on the server type (python manage.py runserver). you can also go to the admin by typing /admin ahead of url and login through username and password you've just created.
+
+4. to add the index file, go to the yourappname folder and create folder templates and inside that create folder same as yourappname then create inside that index.html
+To view the index.html on the server go to the urls.py in the yourprojectname folder and type (from django.urls import include). next in the urlpatterns add ( path('',include('yourappname.urls')) now this yourappname.urls doesn't exist create it inside the yourappname folder as urls.py
+after creating urls.py type ( from django.urls import path )(from . import views) ( urlpatterns = [path('',views.index)])
+note this views.index 'i.e. index is a method' doesn't exist we will create it inside views.py go to views.py and type (from django.shortcuts import render)
+(def index(request):
+    return render(request,'weather/weather.html')
+) 
+Now
+
+1. To call for an API
+sign up on the api website(whichever website you want to access the data) and take the api url which also has api id in it. and paste that url into the views where you defined the method(i.e. in this case it is index), just go inside the index and define the variable for api and paste the url.
+After saving the url in the variable put a curly braces in the url in place of city and type (city = 'paris(or anything)'),type
+( r = requests.get(url.format(city)).json() ) # requesting and getting the response , store the response in r variable
+( print(r.text) ) this will print the city details like windspeed temperature and so on in the command line interface.
+Now, to pass the relevant  data to our template i.e. weather.html
+create the dictionary for the required data from the api
+in the variable for e.g.: type ( 
+    city_weather = {
+        'city' : city,
+        'temperature' : r['main']['temp'],
+        'description' : r['weather'][0]['description'],
+        'icon' : r['weather'][0]['icon']
+    }
+    print(city_weather)   )
+previously it was printing all the data now after this it will only print the required data
+in the value of dictionary we are accessing the details through our response variable i.e. 'r' in this case and accessing the dictionary format information
+After this,
+now passing all the required details to our api by creating a variable i.e type (
+    context = {'city_weather': city_weather}
+    and after this passing 'context' variable to the template through render
+)
+After this, go to the template folder inside the weather.html and go to the cityname description icon and so on and replace the value inside {{  }} as in this case {{ city_weather.city }} {{ city_weather.description }} and so on.
+now, it adds only one city in this case to add multiple cities we need to create table in the database so for that go to the models.py and create a class to store city name in the table type (
+    class City(models.Model):
+    name = models.CharField(max_length=25) # to store the cities we are creating in a single column
+
+    # define string method on it
+    def __str__(self):
+        return self.name
+
+    # also define meta class for making single name i.e.city to cities
+    
+    class Meta:
+        verbose_name_plural = 'cities'
+)
+After this , type ( python manage.py makemigrations)
+and also type ( python manage.py migrate )
+Now, go to the admin.py and type( from .models import City)
+to import City class from models.py and also type ( admin.site.register(City) )
+Note: You must make migrations to view or edit column in the database by typing( python manage.py makemigrations) 
+( python manage.py migrate)
+
+when you go into the admin in the server as you have added three cities and you want to see these three cities in the weather.html to do that you need to query the database for all the three cities you have so go inside views.py and for getting all the cities from the database 
+type( from .models import City ) ( cities = City.objects.all() ) 
+Now loop over the 'cities' and take previous 'r' and 'city_weather' inside loop type also create empty list and in the end append city_weather in that empty list
+    
+    (
+    weather_data = [] 
+    for city in cities:
+    r  = # all the code
+    City_weather = #all the code
+
+    weather_data.append(city_weather)
+    )
+Now instead of passing city_weather to we we'll pass weather_data,
+context = {'city_weather': city_weather} 
+type 
+(context = {'weather_data' : weather_data})
+After this going into template and create a for loop in weather_data , Note create for loop over the container you want to repeat as in this case it is <div class='box'>
+so over <div class= 'box'> 
+type ( {% for city in weather_data %} ) and in the end of the respective div type( {% endfor %} )
+and you will get all the cities in the weather.html page
+Now to add the city through search bar we need to do something for that go to the yourappname folder and create a file called forms.py and inside that type ( from django.forms import ModelForm,TextInput) we are importing ModelForm as we want the form to be same as our model and also TextInput because we want to add some styles to our input tag in weather.html
+we will also import City form models.py type ( from .models import City)
+after this type 
+(
+    class CityForm(ModelForm):
+    class Meta:
+        model=City
+        fields = ['name']
+)
+two type of cases they are 1. as user only viewing the page 2. user want to add city in the page 
+so for 2nd case we will go to the views.py and type( from .forms import CityForm) ( if request.method == 'POST': pass)
+below if type ( form = CityForm() )
+and pass to context type ( context('form':form) ) and after this go to the weather.html and below the input tag type ({{ form.name }}) but in this case it doesn't look like the input field so to change the widget go to forms and type( widgets ={'name' : TextInput(attrs={'class':'input' , 'placeholder':'City Name'})})
+basically we are passing the class and placeholder of the previous input tag 
+Now, remove the previous input tag and instead of that type({{ form.name }}) and it will replace the previous input tag and after this below <form.method = "POST"> 
+type ({% csrf_token %})
+
+after this to validate and save the data from the user go to the views and type 
+( if request.method='POST':
+    form = CityForm(request.POST)
+    form.save()
+)
+
+
+part 2 - https://youtu.be/oPuYTGyW4dU
+
+
